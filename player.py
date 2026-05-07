@@ -1,11 +1,9 @@
 import numpy as np
 import sounddevice as sd
-import threading
 import soundfile as sf
 import signal_generators as sg
 import config
 
-start_idx = 0
 current_frame = 0
 
 class Player:
@@ -45,23 +43,6 @@ class Player:
 
     def playFile(self, filename):
         self.data, fs = sf.read(filename, always_2d=True)
-
-        # def callback(outdata, frames, time, status):
-        #     global current_frame
-        #     if status:
-        #         print(status)
-        #     chunksize = min(len(data) - current_frame, frames)
-
-        #     tmp = data[current_frame:current_frame + chunksize]
-        #     # stereo -> mono
-        #     if tmp.shape[1] == 2:
-        #         tmp = np.array([np.array([(s[0] + s[1]) / 2]) for s in tmp])
-          
-        #     outdata[:chunksize] = amplitude * tmp
-        #     if chunksize < frames:
-        #         outdata[chunksize:] = 0
-        #         raise sd.CallbackStop()
-        #     current_frame += chunksize
 
         stream = sd.OutputStream(
             samplerate=fs, device=sd.default.device, channels=1,
