@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import signal
 import threading
+import soundfile as sf
 
 def sin(event, t, amplitude, freq, phase=0):
     return amplitude * np.sin(2 * np.pi * freq * t + phase)
@@ -19,5 +20,3 @@ def sineSweep(event, t, amplitude, freqStart, freqEnd, sweepRate):
     if (f > freqEnd).any():
         event.set()
     return sin(event, t, amplitude, f)
-
-# def soundFile(event, )
