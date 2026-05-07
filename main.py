@@ -1,31 +1,44 @@
 import threading
 import time
+import numpy as np
 import player
 import signal_generators as sg
+import matplotlib.pyplot as plt
 
-FREQ = 440
-AMPLITUDE = .01
+sweepArgs = {"amplitude": 0.01, "freqStart": 100, "freqEnd": 1000, "sweepRate": 1/2}
 
-def targetPlayer(p, generator, **kwargs):
-    p.play(generator, **kwargs)
+eventStart = threading.Event()
+eventFinished = threading.Event()
 
-def targetAnalyzer(p):
-    # wait for player to start playing
-    while(p.playing == False): pass
+def targetPlayer(p, signal):
+    p.play(signal)
+    # p.playFile("files/Barbie Girl - Aqua.wav")
 
-    while(p.playing):
-        print(p.t)
-        time.sleep(0.1)
+def targetMeasurement():
+    eventStart.wait()
+    # collect data from DAQ
+    eventFinished.wait()
 
-p = player.Player()
-playerThread = threading.Thread(target=targetPlayer, args=(p, sg.sineSweep,),
-                                kwargs={"amplitude": AMPLITUDE, "freqStart": 100, "freqEnd": 1000, "sweepRate": 1/2})
-analyzerThread = threading.Thread(target=targetAnalyzer, args=(p,))
+def measure(u):
+    p = player.Player(eventStart, eventFinished)
 
-playerThread.start()
-analyzerThread.start()
+    threads = []
 
-playerThread.join()
-analyzerThread.join()
+    playerThread = threading.Thread(target=targetPlayer, args=(p, u,))
+    measurementThread = threading.Thread(target=targetMeasurement)
 
-# player.playFile("files/Barbie Girl - Aqua.wav", 0.7)
+    threads.append(playerThread)
+    threads.append(measurementThread)
+
+    for t in threads: t.start()
+    for t in threads: t.join()
+
+def main():
+    # build system input signal
+    u = sg.sineSweep(**sweepArgs)
+
+    # measure
+    measure(u)
+
+if __name__ == "__main__":
+    main()

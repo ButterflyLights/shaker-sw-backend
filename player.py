@@ -2,62 +2,72 @@ import numpy as np
 import sounddevice as sd
 import threading
 import soundfile as sf
+import signal_generators as sg
+import config
 
-SAMPLERATE = 44100
-
-event = threading.Event()
 start_idx = 0
 current_frame = 0
 
 class Player:
-    def __init__(self):
-        self.t = 0
-        self.playing = False
+    def __init__(self, eventStart, eventFinished):
+        self.eventStart = eventStart
+        self.eventFinished = eventFinished
+        self.data = []
 
-    def play(self, generator, **kwargs):
-        def callback(outdata, frames, time, status):
-            global start_idx
-            if status:
-                print(status)
-            t = (start_idx + np.arange(frames)) / SAMPLERATE
-            self.t = t
-            t = t.reshape(-1, 1)
-            outdata[:] = generator(event, t, **kwargs).reshape(-1, 1)
-            start_idx += frames
-        
-        stream = sd.OutputStream(device=sd.default.device, channels=1, callback=callback,
-                            samplerate=SAMPLERATE, finished_callback=event.set)
+    def _callback(self, outdata, frames, time, status):
+        global current_frame
+        if status:
+            print(status)
+        chunksize = min(len(self.data) - current_frame, frames)
+
+        tmp = self.data[current_frame:current_frame + chunksize]
+        # stereo -> mono
+        if tmp.shape[1] == 2:
+            tmp = np.array([np.array([(s[0] + s[1]) / 2]) for s in tmp])
+      
+        outdata[:chunksize] = tmp
+        if chunksize < frames:
+            outdata[chunksize:] = 0
+            raise sd.CallbackStop()
+        current_frame += chunksize
+
+    def play(self, signal, **kwargs):
+        signal = np.transpose(signal)
+        self.data = signal[1].reshape(-1, 1)
+
+        stream = sd.OutputStream(device=sd.default.device, channels=1, callback=self._callback,
+                            samplerate=config.SAMPLERATE, finished_callback=self.eventFinished.set)
 
         with stream:
-            self.playing = True
-            event.wait()
+            self.eventStart.set()
+            self.eventFinished.wait()
             print("playback finished")
-            self.playing = False
 
-    def playFile(self, filename, amplitude):
-        data, fs = sf.read(filename, always_2d=True)
+    def playFile(self, filename):
+        self.data, fs = sf.read(filename, always_2d=True)
 
-        def callback(outdata, frames, time, status):
-            global current_frame
-            if status:
-                print(status)
-            chunksize = min(len(data) - current_frame, frames)
+        # def callback(outdata, frames, time, status):
+        #     global current_frame
+        #     if status:
+        #         print(status)
+        #     chunksize = min(len(data) - current_frame, frames)
 
-            tmp = data[current_frame:current_frame + chunksize]
-            # stereo -> mono
-            if tmp.shape[1] == 2:
-                tmp = np.array([np.array([(s[0] + s[1]) / 2]) for s in tmp])
+        #     tmp = data[current_frame:current_frame + chunksize]
+        #     # stereo -> mono
+        #     if tmp.shape[1] == 2:
+        #         tmp = np.array([np.array([(s[0] + s[1]) / 2]) for s in tmp])
           
-            outdata[:chunksize] = amplitude * tmp
-            if chunksize < frames:
-                outdata[chunksize:] = 0
-                raise sd.CallbackStop()
-            current_frame += chunksize
+        #     outdata[:chunksize] = amplitude * tmp
+        #     if chunksize < frames:
+        #         outdata[chunksize:] = 0
+        #         raise sd.CallbackStop()
+        #     current_frame += chunksize
 
         stream = sd.OutputStream(
             samplerate=fs, device=sd.default.device, channels=1,
-            callback=callback, finished_callback=event.set)
+            callback=self._callback, finished_callback=self.eventFinished.set)
 
         with stream:
-            event.wait()
+            self.eventStart.set()
+            self.eventFinished.wait()
             print("playback finished")
