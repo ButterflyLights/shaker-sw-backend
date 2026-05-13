@@ -1,1 +1,6 @@
-SAMPLERATE = 44100
+import json
+
+fn = "../config.json"
+
+with open(fn) as f:
+    configData = json.load(f)

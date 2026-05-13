@@ -1,0 +1,10 @@
+{
+  "command": "start-measurement",
+  "signalType": "sweep",
+  "signalParams": {
+    "amplitude": 0.05,
+    "freqStart": 100,
+    "freqEnd": 1000,
+    "sweepRate": 0.5
+  }
+}

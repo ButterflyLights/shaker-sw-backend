@@ -1,0 +1,7 @@
+{
+  "command": "start-measurement",
+  "signalType": "audio-file",
+  "signalParams": {
+    "filename": "files/Barbie Girl - Aqua.wav"
+  }
+}

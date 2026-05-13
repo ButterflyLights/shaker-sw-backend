@@ -3,7 +3,7 @@ from scipy import signal
 import config
 
 def _gent(length):
-    return np.arange(length*config.SAMPLERATE) / config.SAMPLERATE
+    return np.arange(length*config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
 
 def _sin(t, amplitude, freq, phase=0):
     return amplitude * np.sin(2 * np.pi * freq * t + phase)
@@ -27,7 +27,7 @@ def sineSweep(amplitude, freqStart, freqEnd, sweepRate):
     while (f < freqEnd):
         f = sineSweepFreq(t, freqStart, freqEnd, sweepRate)
         ret.append([t, _sin(t, amplitude, f)])
-        t += 1/config.SAMPLERATE
+        t += 1/config.configData["audioSamplerate"]
 
     return np.array(ret)
 
@@ -47,6 +47,11 @@ def square(length, amplitude, freq):
     return np.transpose(ret)
 
 def whiteNoise(length, amplitude):
+    t = _gent(length)
+    ret = ([t, _whiteNoise(t, amplitude)])
+    return np.transpose(ret)
+
+def noise(length, amplitude, freqStart, freqEnd):
     t = _gent(length)
     ret = ([t, _whiteNoise(t, amplitude)])
     return np.transpose(ret)

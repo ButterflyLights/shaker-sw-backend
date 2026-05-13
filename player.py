@@ -7,9 +7,9 @@ import config
 current_frame = 0
 
 class Player:
-    def __init__(self, eventStart, eventFinished):
-        self.eventStart = eventStart
-        self.eventFinished = eventFinished
+    def __init__(self, eventStartedPlayback, eventFinishedPlayback):
+        self.eventStartedPlayback = eventStartedPlayback
+        self.eventFinishedPlayback = eventFinishedPlayback
         self.data = []
 
     def _callback(self, outdata, frames, time, status):
@@ -18,27 +18,24 @@ class Player:
             print(status)
         chunksize = min(len(self.data) - current_frame, frames)
 
-        tmp = self.data[current_frame:current_frame + chunksize]
-        # stereo -> mono
-        if tmp.shape[1] == 2:
-            tmp = np.array([np.array([(s[0] + s[1]) / 2]) for s in tmp])
-      
-        outdata[:chunksize] = tmp
+        outdata[:chunksize] = self.data[current_frame:current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             raise sd.CallbackStop()
         current_frame += chunksize
 
-    def play(self, signal, **kwargs):
+    def play(self, signal, samplerate, **kwargs):
         signal = np.transpose(signal)
         self.data = signal[1].reshape(-1, 1)
 
+        # self.data = signal
+
         stream = sd.OutputStream(device=sd.default.device, channels=1, callback=self._callback,
-                            samplerate=config.SAMPLERATE, finished_callback=self.eventFinished.set)
+                            samplerate=samplerate, finished_callback=self.eventFinishedPlayback.set)
 
         with stream:
-            self.eventStart.set()
-            self.eventFinished.wait()
+            self.eventStartedPlayback.set()
+            self.eventFinishedPlayback.wait()
             print("playback finished")
 
     def playFile(self, filename):
@@ -46,9 +43,9 @@ class Player:
 
         stream = sd.OutputStream(
             samplerate=fs, device=sd.default.device, channels=1,
-            callback=self._callback, finished_callback=self.eventFinished.set)
+            callback=self._callback, finished_callback=self.eventFinishedPlayback.set)
 
         with stream:
-            self.eventStart.set()
-            self.eventFinished.wait()
+            self.eventStartedPlayback.set()
+            self.eventFinishedPlayback.wait()
             print("playback finished")

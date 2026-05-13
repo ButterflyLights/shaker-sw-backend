@@ -1,0 +1,10 @@
+{
+  "command": "start-measurement",
+  "signalType": "random",
+  "signalParams": {
+    "length": 5,
+    "amplitude": 0.05,
+    "freqStart": 100,
+    "freqEnd": 1000
+  }
+}
