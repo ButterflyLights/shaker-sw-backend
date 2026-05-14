@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
 import uvicorn
 import json
 import config
@@ -6,36 +6,32 @@ import measurement
 
 app = FastAPI()
 
-@app.post("/send")
-async def receive_data(request: Request):
-    # Rohdaten als String lesen
-    raw_data = await request.body()
+def process_measurement(text: str):
+    measurement.run(text)
 
+@app.post("/send")
+async def receive_data(request: Request, background_tasks: BackgroundTasks):
+    raw_data = await request.body()
     text = raw_data.decode("utf-8")
 
-    print("Empfangener String:")
+    print("Empfangen:")
     print(text)
 
-    # später als JSON interpretieren
-    try:
-        data = json.loads(text)
-
-        print("JSON erfolgreich geparsed:")
-        print(data)
-
-        measurement.run(data)
-        
+    if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
+        print("still measuring!")
+    
         return {
             "status": "ok",
-            "parsed": data
+            "message": "measurement ongoing"
         }
 
-    except json.JSONDecodeError:
+    else:
+        background_tasks.add_task(process_measurement, text)
+
         return {
-            "status": "error",
-            "message": "Ungültiges JSON"
+            "status": "ok",
+            "message": "measurement started"
         }
-
 
 if __name__ == "__main__":
     uvicorn.run(

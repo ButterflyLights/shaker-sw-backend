@@ -8,7 +8,6 @@ import json
 import soundfile as sf
 import config
 
-eventStartMeasurement = threading.Event()
 eventStartedPlayback = threading.Event()
 eventFinishedPlayback = threading.Event()
     
@@ -60,10 +59,10 @@ def measure(u, samplerate):
 def run(msg):
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
-    eventStartMeasurement.clear()
 
     print(msg)
     data = json.loads(msg)
+    print(data)
 
     # build system input signal depending on data and start measurement
     u, samplerate = genSignal(data)
@@ -72,7 +71,6 @@ def run(msg):
 def runTest():
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
-    eventStartMeasurement.clear()
 
     with open("testMsg_sweep.json") as f:
         data = json.load(f)
