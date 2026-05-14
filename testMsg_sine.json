@@ -1,10 +1,9 @@
 {
   "command": "start-measurement",
-  "signalType": "random",
+  "signalType": "sine",
   "signalParams": {
     "length": 5,
     "amplitude": 0.05,
-    "startFreq": 144,
-    "endFreq": 2000
+    "freq": 800
   }
 }
