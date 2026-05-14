@@ -4,25 +4,24 @@ import soundfile as sf
 import signal_generators as sg
 import config
 
-current_frame = 0
-
 class Player:
     def __init__(self, eventStartedPlayback, eventFinishedPlayback):
         self.eventStartedPlayback = eventStartedPlayback
         self.eventFinishedPlayback = eventFinishedPlayback
         self.data = []
+        self.current_frame = 0
 
     def _callback(self, outdata, frames, time, status):
-        global current_frame
+        
         if status:
             print(status)
-        chunksize = min(len(self.data) - current_frame, frames)
+        chunksize = min(len(self.data) - self.current_frame, frames)
 
-        outdata[:chunksize] = self.data[current_frame:current_frame + chunksize]
+        outdata[:chunksize] = self.data[self.current_frame:self.current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             raise sd.CallbackStop()
-        current_frame += chunksize
+        self.current_frame += chunksize
 
     def play(self, signal, samplerate, **kwargs):
         signal = np.transpose(signal)

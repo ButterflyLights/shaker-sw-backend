@@ -57,32 +57,24 @@ def measure(u, samplerate):
     for t in threads: t.start()
     for t in threads: t.join()
 
-def run():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind((config.configData["backendHost"], config.configData["backendPort"]))
-        print(f"...listening on port {config.configData["backendPort"]}")
-        sock.listen(1)
-        conn, addr = sock.accept()
+def run(msg):
+    eventStartedPlayback.clear()
+    eventFinishedPlayback.clear()
+    eventStartMeasurement.clear()
 
-        with conn:
-            print(f"Connected by {addr}")
-            while True:
-                # wait for start msg
-                msg = conn.recv(1024)
-                data = json.loads(msg)
+    print(msg)
+    data = json.loads(msg)
 
-                # build system input signal depending on data and start measurement
-                u, samplerate = genSignal(data)
-                measure(u, samplerate)
-
-                # send done msg
-                conn.sendall(msg)
-
-                # TODO: check if connection is still active?
+    # build system input signal depending on data and start measurement
+    u, samplerate = genSignal(data)
+    measure(u, samplerate)
 
 def runTest():
-    # test
-    with open("testMsg_random.json") as f:
+    eventStartedPlayback.clear()
+    eventFinishedPlayback.clear()
+    eventStartMeasurement.clear()
+
+    with open("testMsg_sweep.json") as f:
         data = json.load(f)
 
     # build system input signal depending on data and start measurement
@@ -90,4 +82,5 @@ def runTest():
     measure(u, samplerate)
 
 if __name__ == "__main__":
+    runTest()
     runTest()

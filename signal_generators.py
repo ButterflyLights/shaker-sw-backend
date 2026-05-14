@@ -73,10 +73,9 @@ def whiteNoise(length, amplitude, startFreq=None, endFreq=None):
     for i in range(N):
         if np.abs(xf[i]) > startFreq and np.abs(xf[i]) < endFreq:
             yf[i] = 1
-
-    yf = yf * np.exp(1j * 2 * np.pi * np.random.rand(N)) #  randomize phase
-    y = filters.invfft(yf)
+    yf = yf * np.exp(1j * 2 * np.pi * np.random.rand(N))
     
+    y = filters.invfft(yf)
     y = y*amplitude/max(y) # TODO: calculate amplitude based on acceleration
 
     filters.fft(t, y)
