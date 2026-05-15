@@ -1,10 +1,18 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import threading
 import config
 import measurement
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 measurement_lock = threading.Lock()
 
@@ -13,7 +21,6 @@ def process_measurement(data):
 
 @app.post("/send")
 async def receive_data(request: Request):
-
     try:
         data = await request.json()
         command = data.get("command")
@@ -70,8 +77,13 @@ async def receive_data(request: Request):
             "message": str(e)
         }
 
-if __name__ == "__main__":
+@app.get("/status")
+async def status():
+    return {
+        "status": measurement.getState().name
+    }
 
+if __name__ == "__main__":
     uvicorn.run(
         app,
         host=config.configData["backendHost"],
