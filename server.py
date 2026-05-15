@@ -17,20 +17,44 @@ async def receive_data(request: Request, background_tasks: BackgroundTasks):
     print("Empfangen:")
     print(text)
 
-    if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
-        print("still measuring!")
-    
-        return {
-            "status": "ok",
-            "message": "measurement ongoing"
-        }
+    try:
+        data = json.loads(text)
+        if data["command"] == "start-measurement":
+            if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
+                print("still measuring!")
+            
+                return {
+                    "status": "ok",
+                    "message": "measurement ongoing"
+                }
 
-    else:
-        background_tasks.add_task(process_measurement, text)
+            else:
+                background_tasks.add_task(process_measurement, text)
 
+                return {
+                    "status": "ok",
+                    "message": "measurement started"
+                }
+
+        elif data["command"] == "stop-measurement":
+            if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
+                measurement.eventFinishedPlayback.set()
+                return {
+                    "status": "ok",
+                    "message": "measurement stopped"
+                }
+
+            else:
+                print("no measurement ongoing")
+                return {
+                    "status": "ok",
+                    "message": "no measurement ongoing"
+                }
+
+    except json.JSONDecodeError:
         return {
-            "status": "ok",
-            "message": "measurement started"
+            "status": "error",
+            "message": "Ungültiges JSON"
         }
 
 if __name__ == "__main__":
