@@ -5,12 +5,28 @@ import signal_generators as sg
 import matplotlib.pyplot as plt
 import socket
 import json
+from enum import Enum
 import soundfile as sf
 import config
 
 eventStartedPlayback = threading.Event()
 eventFinishedPlayback = threading.Event()
     
+class MeasurementState(str, Enum):
+    IDLE = "idle"
+    RUNNING = "running"
+    FINISHED = "finished"
+
+def getState():
+    if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
+        return MeasurementState.IDLE
+
+    elif eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
+        return MeasurementState.RUNNING
+
+    else:
+        return MeasurementState.FINISHED
+
 def genSignal(data):
     if data["signalType"] == "audio-file":
         signal, samplerate = sf.read(data["signalParams"]["filename"], always_2d=True)
@@ -56,12 +72,10 @@ def measure(u, samplerate):
     for t in threads: t.start()
     for t in threads: t.join()
 
-def run(msg):
+def run(data):
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
-    print(msg)
-    data = json.loads(msg)
     print(data)
 
     # build system input signal depending on data and start measurement

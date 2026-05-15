@@ -1,44 +1,48 @@
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request
 import uvicorn
-import json
+import threading
 import config
 import measurement
 
 app = FastAPI()
 
-def process_measurement(text: str):
-    measurement.run(text)
+measurement_lock = threading.Lock()
+
+def process_measurement(data):
+    measurement.run(data)
 
 @app.post("/send")
-async def receive_data(request: Request, background_tasks: BackgroundTasks):
-    raw_data = await request.body()
-    text = raw_data.decode("utf-8")
-
-    print("Empfangen:")
-    print(text)
+async def receive_data(request: Request):
 
     try:
-        data = json.loads(text)
-        if data["command"] == "start-measurement":
-            if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
-                print("still measuring!")
-            
-                return {
-                    "status": "ok",
-                    "message": "measurement ongoing"
-                }
+        data = await request.json()
+        command = data.get("command")
 
-            else:
-                background_tasks.add_task(process_measurement, text)
+        if command == "start-measurement":
+            with measurement_lock:
+                if measurement.getState() == measurement.MeasurementState.RUNNING:
+                    print("still measuring!")
+
+                    return {
+                        "status": "ok",
+                        "message": "measurement ongoing"
+                    }
+
+                threading.Thread(
+                    target=process_measurement,
+                    args=(data,),
+                    daemon=True
+                ).start()
 
                 return {
                     "status": "ok",
                     "message": "measurement started"
                 }
 
-        elif data["command"] == "stop-measurement":
-            if measurement.eventStartedPlayback.is_set() and not measurement.eventFinishedPlayback.is_set():
+        elif command == "stop-measurement":
+            if measurement.getState() == measurement.MeasurementState.RUNNING:
                 measurement.eventFinishedPlayback.set()
+
                 return {
                     "status": "ok",
                     "message": "measurement stopped"
@@ -46,18 +50,28 @@ async def receive_data(request: Request, background_tasks: BackgroundTasks):
 
             else:
                 print("no measurement ongoing")
+
                 return {
                     "status": "ok",
                     "message": "no measurement ongoing"
                 }
 
-    except json.JSONDecodeError:
         return {
             "status": "error",
-            "message": "Ungültiges JSON"
+            "message": "unknown command"
+        }
+
+    except Exception as e:
+
+        print(e)
+
+        return {
+            "status": "error",
+            "message": str(e)
         }
 
 if __name__ == "__main__":
+
     uvicorn.run(
         app,
         host=config.configData["backendHost"],
