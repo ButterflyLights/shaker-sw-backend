@@ -17,7 +17,7 @@ class Player:
             print(status)
         chunksize = min(len(self.data) - self.current_frame, frames)
 
-        outdata[:chunksize] = self.data[self.current_frame:self.current_frame + chunksize]
+        outdata[:chunksize] = config.configData["audioGlobalAmplitudeMultiplier"] * self.data[self.current_frame:self.current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             raise sd.CallbackStop()
@@ -33,6 +33,7 @@ class Player:
                             samplerate=samplerate, finished_callback=self.eventFinishedPlayback.set)
 
         with stream:
+            print("starting playback")
             self.eventStartedPlayback.set()
             self.eventFinishedPlayback.wait()
             print("playback finished")

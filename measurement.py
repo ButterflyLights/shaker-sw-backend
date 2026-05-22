@@ -28,8 +28,8 @@ def getState():
         return MeasurementState.FINISHED
 
 def genSignal(data):
-    if data["signalType"] == "audio-file":
-        signal, samplerate = sf.read(data["signalParams"]["filename"], always_2d=True)
+    if data["signalType"] == "audioFile":
+        signal, samplerate = sf.read("../data/audioFiles/" + data["signalParams"]["filename"], always_2d=True)
         signal = np.array([[i/samplerate, (signal[i][0] + signal[i][1]) / 2] for i in range(len(signal))])
 
     elif data["signalType"] == "sine":
@@ -86,7 +86,7 @@ def runTest():
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
-    with open("testMsg_sweep.json") as f:
+    with open("testMsg_random.json") as f:
         data = json.load(f)
 
     # build system input signal depending on data and start measurement
@@ -94,5 +94,4 @@ def runTest():
     measure(u, samplerate)
 
 if __name__ == "__main__":
-    runTest()
     runTest()

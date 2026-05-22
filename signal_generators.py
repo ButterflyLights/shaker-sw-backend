@@ -5,8 +5,19 @@ import matplotlib.pyplot as plt
 import config
 import filters
 
-def _gent(length):
-    return np.arange(length*config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
+# TODO: fix amplitudegs
+
+def decoratorSg(f):
+    def decorated(*args, **kwargs):
+        print("generating signal...")
+        ret = f(*args, **kwargs)
+        # filters.fft(np.transpose(ret)[0], np.transpose(ret)[1])
+        return ret
+
+    return decorated
+
+def _gent(lengths):
+    return np.arange(lengths*config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
 
 def _sin(t, amplitude, freq, phase=0):
     return amplitude * np.sin(2 * np.pi * freq * t + phase)
@@ -18,67 +29,74 @@ def _square(t, amplitude, freq, phase=0):
     return amplitude * signal.square(2 * np.pi * freq * t + phase)
 
 # calculate sweep frequency at t
-def sineSweepFreq(t, freqStart, freqEnd, sweepRate):
-    return freqStart * 2**(t * sweepRate)
+def sineSweepFreq(t, startFreqHz, endFreqHz, sweepRate):
+    if startFreqHz < 1: startFreqHz = 1
+    return startFreqHz * 2**(t * sweepRate)
+
+# calculate amplitude at frequency f
+def calcAmp(f, amplitudeg):
+    amplitude = amplitudeg * 9.81
+    return amplitude / (2 * np.pi * f)**2
 
 # generate sweep signal
-def sineSweep(amplitude, freqStart, freqEnd, sweepRate):
+@decoratorSg
+def sineSweep(amplitudeg, startFreqHz, endFreqHz, sweepRateOctMin):
+    sweepRate = sweepRateOctMin / 60
     t = 0
-    f = freqStart
+    f = startFreqHz
     ret = []
-    while (f < freqEnd):
-        f = sineSweepFreq(t, freqStart, freqEnd, sweepRate)
-        ret.append([t, _sin(t, amplitude, f)])
+    while (f < endFreqHz):
+        print(calcAmp(f, amplitudeg))
+        f = sineSweepFreq(t, startFreqHz, endFreqHz, sweepRate)
+        ret.append([t, _sin(t, calcAmp(f, amplitudeg), f)])
         t += 1/config.configData["audioSamplerate"]
 
     return np.array(ret)
 
 # generate sin signal
-def sin(length, amplitude, freq):
-    t = _gent(length)
-    ret = np.array([t, _sin(t, amplitude, freq)])
-    filters.fft(t, ret[1])
-    print(ret[1])
+@decoratorSg
+def sin(lengths, amplitudeg, freq):
+    t = _gent(lengths)
+    ret = np.array([t, _sin(t, amplitudeg, freq)])
     return np.transpose(ret)
 
 # generate sawtooth signal
-def sawtooth(length, amplitude, freq):
-    t = _gent(length)
-    ret = np.array([t, _sawtooth(t, amplitude, freq)])
-    filters.fft(t, ret[1])
+@decoratorSg
+def sawtooth(lengths, amplitudeg, freq):
+    t = _gent(lengths)
+    ret = np.array([t, _sawtooth(t, amplitudeg, freq)])
     return np.transpose(ret)
 
 # generate square signal
-def square(length, amplitude, freq):
-    t = _gent(length)
-    ret = np.array([t, _square(t, amplitude, freq)])
-    filters.fft(t, ret[1])
+@decoratorSg
+def square(lengths, amplitudeg, freq):
+    t = _gent(lengths)
+    ret = np.array([t, _square(t, amplitudeg, freq)])
     return np.transpose(ret)
 
 # generate white noise signal with max / min frequencies
-def whiteNoise(length, amplitude, startFreq=None, endFreq=None):
-    t = _gent(length)
+@decoratorSg
+def whiteNoise(lengths, amplitudeg, startFreqHz=None, endFreqHz=None):
+    t = _gent(lengths)
     N = len(t)
     dw = 10 / (2*N) # ???
 
-    if startFreq == None:
-        startFreq = 0
-    if endFreq == None:
-        endFreq = config.configData["audioSamplerate"] / 2
+    if startFreqHz == None:
+        startFreqHz = 0
+    if endFreqHz == None:
+        endFreqHz = config.configData["audioSamplerate"] / 2
 
     xf = sc.fft.fftfreq(N, dw)
     xf = sc.fft.fftshift(xf)
 
     yf = np.zeros(N)
     for i in range(N):
-        if np.abs(xf[i]) > startFreq and np.abs(xf[i]) < endFreq:
+        if np.abs(xf[i]) > startFreqHz and np.abs(xf[i]) < endFreqHz:
             yf[i] = 1
     yf = yf * np.exp(1j * 2 * np.pi * np.random.rand(N))
     
     y = filters.invfft(yf)
-    y = y*amplitude/max(y) # TODO: calculate amplitude based on acceleration
-
-    filters.fft(t, y)
+    y = y*amplitudeg/max(y)/config.configData["audioGlobalAmplitudeMultiplier"] # TODO: calculate amplitude based on acceleration
 
     ret = np.array([t, y])
     return np.transpose(ret)
