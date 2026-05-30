@@ -22,6 +22,17 @@ def invfft(F):
     F = sc.fft.fftshift(F)
     return sc.fft.ifft(F).real
 
+def psd(y):
+    f, pxx = signal.welch(y, config.configData["audioSamplerate"], nperseg=1024)
+    plt.semilogy(f, pxx)
+    plt.xlabel('frequency [Hz]')
+    plt.ylabel('PSD [V**2/Hz]')
+    # plt.ylim([0.5e-12, 1])
+    plt.grid()
+    plt.show()
+
+    return f, pxx
+
 def lpf(u, cutoff, order=config.configData["filterOrder"]):
     b, a = signal.butter(order, cutoff, fs=config.configData["audioSamplerate"], btype='low', analog=False)
     return signal.lfilter(b, a, u)

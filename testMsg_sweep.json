@@ -3,8 +3,8 @@
   "signalType": "sweep",
   "signalParams": {
     "amplitudeg": 1,
-    "startFreqHz": 100,
-    "endFreqHz": 1000,
+    "startFreqHz": 50,
+    "endFreqHz": 100,
     "sweepRateOctMin": 4
   }
 }

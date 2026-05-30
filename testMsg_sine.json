@@ -2,8 +2,8 @@
   "command": "start-measurement",
   "signalType": "sine",
   "signalParams": {
-    "length": 5,
-    "amplitude": 0.05,
+    "lengths": 5,
+    "amplitudeg": 1,
     "freq": 800
   }
 }

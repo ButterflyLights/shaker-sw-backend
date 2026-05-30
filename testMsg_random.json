@@ -3,7 +3,7 @@
   "signalType": "random",
   "signalParams": {
     "lengths": 5,
-    "amplitudeg": 0.05,
+    "grms": 1,
     "startFreqHz": 144,
     "endFreqHz": 2000
   }
