@@ -3,8 +3,8 @@
   "signalType": "random",
   "signalParams": {
     "lengths": 5,
-    "grms": 1,
-    "startFreqHz": 144,
+    "grms": 10,
+    "startFreqHz": 20,
     "endFreqHz": 2000
   }
 }

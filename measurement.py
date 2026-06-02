@@ -91,7 +91,7 @@ def runTest():
 
     # build system input signal depending on data and start measurement
     u, samplerate = genSignal(data)
-    # measure(u, samplerate)
+    measure(u, samplerate)
 
 if __name__ == "__main__":
     runTest()

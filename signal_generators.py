@@ -13,15 +13,21 @@ def decoratorSg(f):
     def decorated(*args, **kwargs):
         print("generating signal...")
         t, y = f(*args, **kwargs)
-        # filters.fft(np.transpose(ret)[0], np.transpose(ret)[1])
-        print("rms:", calcRMS(y))
-        print("max amplitude:", max(y))
+        print("acc rms:", calcRMS(y))
+        print("acc max amplitude:", max(y))
         filters.psd(y)
 
-        # plt.plot(t, y)
-        # plt.show()
+        plt.plot(t, y)
 
         y = accToDisp(t, y) # convert to disp
+        
+        plt.plot(t, y)
+        plt.grid()
+        plt.show()
+
+        print("disp rms:", calcRMS(y))
+        print("disp max amplitude:", max(y))
+        filters.fft(t, y)
 
         return np.transpose(np.array([t, y]))
 
@@ -38,24 +44,34 @@ def calcRMS(y):
 
     return np.sqrt(np.sum(y**2) / len(y))
 
-def accToDisp(t, y, fmin=1):
-    xf, yf = filters.fft(t, y)
+def integrate(t, y):
+    dt = t[1] - t[0]
 
-    # plt.semilogy(xf, yf)
+    I = 0
+    ret = [0]
+    for i in range(1, len(y)):
+        I += dt * y[i]
+        ret.append(I)
 
-    # normalize
-    valid = abs(xf) >= fmin # mask low frequencies
-    # yf[valid] = yf[valid] / (2 * np.pi * xf[valid])**2
+    return t, ret
 
-    for i in range(len(yf)):
-        if valid[i]:
-            yf[i] = yf[i] / (2 * np.pi * xf[i])**2
+### do we even need this??? ###
+def accToDisp(t, y):
+    # get velocity
+    _, v = integrate(t, y)
 
-    # plt.semilogy(xf, yf)
-    # plt.xlim(-1000, 1000)
-    # plt.show()
+    # remove dc
+    dc_v = np.mean(v)
+    v -= dc_v
 
-    return filters.invfft(yf)
+    # get displacement
+    _, x = integrate(t, v)
+
+    # remove dc
+    dc_x = np.mean(x)
+    x -= dc_x
+
+    return x
 
 def _gent(lengths):
     return np.arange(lengths*config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
@@ -93,11 +109,10 @@ def sineSweep(amplitudeg, startFreqHz, endFreqHz, sweepRateOctMin):
         t.append(tStart)
         y.append(_sin(tStart, amplitudeg, f))
         tStart += 1/config.configData["audioSamplerate"]
-
-    # calculated amplitude:
-    # rms: 5.662339944180496e-07
-    # max amplitude: 1.5525061663804428e-06
     
+    t = np.array(t)
+    y = np.array(y)
+
     return t, y
 
 # generate sin signal

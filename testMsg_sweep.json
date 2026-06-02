@@ -2,9 +2,9 @@
   "command": "start-measurement",
   "signalType": "sweep",
   "signalParams": {
-    "amplitudeg": 1,
-    "startFreqHz": 50,
-    "endFreqHz": 100,
-    "sweepRateOctMin": 4
+    "amplitudeg": 7,
+    "startFreqHz": 100,
+    "endFreqHz": 1000,
+    "sweepRateOctMin": 10
   }
 }
