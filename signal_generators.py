@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import config
 import filters
 
-# TODO: fix amplitudegs
+PLOT_SIGNAL = False
 
 g = 9.81
 
@@ -15,19 +15,21 @@ def decoratorSg(f):
         t, y = f(*args, **kwargs)
         print("acc rms:", calcRMS(y))
         print("acc max amplitude:", max(y))
-        filters.psd(y)
 
-        plt.plot(t, y)
+        if PLOT_SIGNAL:
+            filters.psd(y)
+            plt.plot(t, y)
 
         y = accToDisp(t, y) # convert to disp
         
-        plt.plot(t, y)
-        plt.grid()
-        plt.show()
+        if PLOT_SIGNAL:
+            plt.plot(t, y)
+            plt.grid()
+            plt.show()
+            filters.fft(t, y)
 
         print("disp rms:", calcRMS(y))
         print("disp max amplitude:", max(y))
-        filters.fft(t, y)
 
         return np.transpose(np.array([t, y]))
 
@@ -53,24 +55,15 @@ def integrate(t, y):
         I += dt * y[i]
         ret.append(I)
 
+    # remove dc offset
+    dc = np.mean(ret)
+    ret -= dc
+
     return t, ret
 
 ### do we even need this??? ###
 def accToDisp(t, y):
-    # get velocity
-    _, v = integrate(t, y)
-
-    # remove dc
-    dc_v = np.mean(v)
-    v -= dc_v
-
-    # get displacement
-    _, x = integrate(t, v)
-
-    # remove dc
-    dc_x = np.mean(x)
-    x -= dc_x
-
+    _, x = integrate(*integrate(t, y))
     return x
 
 def _gent(lengths):

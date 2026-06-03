@@ -86,7 +86,7 @@ def runTest():
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
-    with open("testMsg_random.json") as f:
+    with open("testMsg_audio-file.json") as f:
         data = json.load(f)
 
     # build system input signal depending on data and start measurement
