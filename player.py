@@ -20,6 +20,8 @@ class Player:
             signal[1] *= config.configData["audioAmplitudeLimit"] / maxAmp
             print(f"scaled signal to max amplitude of {max(signal[1])}")
 
+        signal[1] *= config.configData["audioGlobalAmplitudeMultiplier"]
+
         return signal
 
     def _callback(self, outdata, frames, time, status):
@@ -27,7 +29,7 @@ class Player:
             print(status)
         chunksize = min(len(self.data) - self.current_frame, frames)
 
-        outdata[:chunksize] = config.configData["audioGlobalAmplitudeMultiplier"] * self.data[self.current_frame:self.current_frame + chunksize]
+        outdata[:chunksize] = self.data[self.current_frame:self.current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             raise sd.CallbackStop()

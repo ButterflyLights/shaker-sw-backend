@@ -33,10 +33,10 @@ def psd(y):
 
     return f, pxx
 
-def lpf(u, cutoff, order=config.configData["filterOrder"]):
+def lpf(u, cutoff, order=config.configData["audioFilterOrder"]):
     b, a = signal.butter(order, cutoff, fs=config.configData["audioSamplerate"], btype='low', analog=False)
     return signal.lfilter(b, a, u)
 
-def hpf(u, cutoff, order=config.configData["filterOrder"]):
+def hpf(u, cutoff, order=config.configData["audioFilterOrder"]):
     b, a = signal.butter(order, cutoff, fs=config.configData["audioSamplerate"], btype='high', analog=False)
     return signal.lfilter(b, a, u)

@@ -2,48 +2,43 @@ import numpy as np
 from scipy import signal
 import scipy as sc
 import matplotlib.pyplot as plt
+import soundfile as sf
 import config
 import filters
 
-PLOT_SIGNAL = False
+PLOT_SIGNAL = True
+convertToDisp = True # this flag is set when a signal generator is called
 
 g = 9.81
 
 def decoratorSg(f):
     def decorated(*args, **kwargs):
         print("generating signal...")
-        t, y = f(*args, **kwargs)
+        t, y, samplerate = f(*args, **kwargs)
         print("acc rms:", calcRMS(y))
         print("acc max amplitude:", max(y))
 
         if PLOT_SIGNAL:
             filters.psd(y)
-            plt.plot(t, y)
+            # plt.plot(t, y)
 
-        y = accToDisp(t, y) # convert to disp
-        
-        if PLOT_SIGNAL:
-            plt.plot(t, y)
-            plt.grid()
-            plt.show()
-            filters.fft(t, y)
+        if convertToDisp:
+            y = accToDisp(t, y) # convert to disp
+            
+            if PLOT_SIGNAL:
+                # plt.plot(t, y)
+                # plt.grid()
+                # plt.show()
+                filters.psd(y)
 
-        print("disp rms:", calcRMS(y))
-        print("disp max amplitude:", max(y))
+            print("disp rms:", calcRMS(y))
+            print("disp max amplitude:", max(y))
 
-        return np.transpose(np.array([t, y]))
+        return np.transpose(np.array([t, y])), samplerate
 
     return decorated
 
 def calcRMS(y):
-    # f, psd = filters.psd(y)
-
-    # df = f[1] - f[0]
-    # grms = np.sqrt(np.sum(psd * df))
-    
-    # print("rms psd:", grms)
-    # print("direct rms:", np.sqrt(np.sum(y**2) / len(y)))
-
     return np.sqrt(np.sum(y**2) / len(y))
 
 def integrate(t, y):
@@ -64,6 +59,7 @@ def integrate(t, y):
 ### do we even need this??? ###
 def accToDisp(t, y):
     _, x = integrate(*integrate(t, y))
+    x = filters.hpf(x, config.configData["audioDispCutoffFreq"])
     return x
 
 def _gent(lengths):
@@ -98,7 +94,6 @@ def sineSweep(amplitudeg, startFreqHz, endFreqHz, sweepRateOctMin):
     y = []
     while (f < endFreqHz):
         f = sineSweepFreq(tStart, startFreqHz, endFreqHz, sweepRate)
-        # ret.append([tStart, _sin(t, amplitudeg, f)])
         t.append(tStart)
         y.append(_sin(tStart, amplitudeg, f))
         tStart += 1/config.configData["audioSamplerate"]
@@ -106,28 +101,28 @@ def sineSweep(amplitudeg, startFreqHz, endFreqHz, sweepRateOctMin):
     t = np.array(t)
     y = np.array(y)
 
-    return t, y
+    return t, y, config.configData["audioSamplerate"]
 
-# generate sin signal
-@decoratorSg
-def sin(lengths, amplitudeg, freq):
-    t = _gent(lengths)
-    ret = np.array([t, _sin(t, calcAmp(freq, amplitudeg), freq)])
-    return np.transpose(ret)
+# # generate sin signal
+# @decoratorSg
+# def sin(lengths, amplitudeg, freq):
+#     t = _gent(lengths)
+#     ret = np.array([t, _sin(t, calcAmp(freq, amplitudeg), freq)])
+#     return np.transpose(ret)
 
-# generate sawtooth signal
-@decoratorSg
-def sawtooth(lengths, amplitudeg, freq):
-    t = _gent(lengths)
-    ret = np.array([t, _sawtooth(t, amplitudeg, freq)])
-    return np.transpose(ret)
+# # generate sawtooth signal
+# @decoratorSg
+# def sawtooth(lengths, amplitudeg, freq):
+#     t = _gent(lengths)
+#     ret = np.array([t, _sawtooth(t, amplitudeg, freq)])
+#     return np.transpose(ret)
 
-# generate square signal
-@decoratorSg
-def square(lengths, amplitudeg, freq):
-    t = _gent(lengths)
-    ret = np.array([t, _square(t, amplitudeg, freq)])
-    return np.transpose(ret)
+# # generate square signal
+# @decoratorSg
+# def square(lengths, amplitudeg, freq):
+#     t = _gent(lengths)
+#     ret = np.array([t, _square(t, amplitudeg, freq)])
+#     return np.transpose(ret)
 
 # generate white noise signal with max / min frequencies
 @decoratorSg
@@ -153,4 +148,11 @@ def whiteNoise(lengths, grms, startFreqHz=None, endFreqHz=None):
     y = filters.invfft(yf)
     y = y * (grms * g) / calcRMS(y) # get desired grms
 
-    return t, y
+    return t, y, config.configData["audioSamplerate"]
+
+@decoratorSg
+def audioFile(filename):
+    signal, samplerate = sf.read("../data/audioFiles/" + filename, always_2d=True)
+    signal = np.array([[i/samplerate, (signal[i][0] + signal[i][1]) / 2] for i in range(len(signal))])
+    signal = np.transpose(signal)
+    return signal[0], signal[1], samplerate

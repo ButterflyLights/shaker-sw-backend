@@ -29,22 +29,18 @@ def getState():
 
 def genSignal(data):
     if data["signalType"] == "audioFile":
-        signal, samplerate = sf.read("../data/audioFiles/" + data["signalParams"]["filename"], always_2d=True)
-        signal = np.array([[i/samplerate, (signal[i][0] + signal[i][1]) / 2] for i in range(len(signal))])
-
-    elif data["signalType"] == "sine":
-        signal = sg.sin(**data["signalParams"])
-        samplerate = config.configData["audioSamplerate"]
+        sg.convertToDisp = False
+        generator = sg.audioFile
 
     elif data["signalType"] == "sweep":
-        signal = sg.sineSweep(**data["signalParams"])
-        samplerate = config.configData["audioSamplerate"]
+        sg.convertToDisp = True
+        generator = sg.sineSweep
 
     elif data["signalType"] == "random":
-        signal = sg.whiteNoise(**data["signalParams"])
-        samplerate = config.configData["audioSamplerate"]
+        sg.convertToDisp = True
+        generator = sg.whiteNoise
 
-    return signal, samplerate
+    return generator(**data["signalParams"])
 
 def targetPlayer(p, signal, samplerate):
     p.play(signal, samplerate)
@@ -86,7 +82,7 @@ def runTest():
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
-    with open("testMsg_audio-file.json") as f:
+    with open("testMsg_random.json") as f:
         data = json.load(f)
 
     # build system input signal depending on data and start measurement
