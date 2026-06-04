@@ -6,7 +6,7 @@ import soundfile as sf
 import config
 import filters
 
-PLOT_SIGNAL = True
+PLOT_SIGNAL = False
 convertToDisp = True # this flag is set when a signal generator is called
 
 g = 9.81
