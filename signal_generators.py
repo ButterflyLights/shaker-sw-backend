@@ -18,6 +18,11 @@ def decoratorSg(f):
         print("acc rms:", calcRMS(y))
         print("acc max amplitude:", max(y))
 
+        ret = {
+            "samplerate": samplerate,
+            "uAcc": np.transpose(np.array([t, y]))
+        }
+
         if PLOT_SIGNAL:
             filters.psd(y)
             # plt.plot(t, y)
@@ -34,7 +39,8 @@ def decoratorSg(f):
             print("disp rms:", calcRMS(y))
             print("disp max amplitude:", max(y))
 
-        return np.transpose(np.array([t, y])), samplerate
+        ret.setdefault("uDisp", np.transpose(np.array([t, y])))
+        return ret
 
     return decorated
 

@@ -18,7 +18,7 @@ class Player:
         maxAmp = max(signal[1])
         if maxAmp > config.configData["audioAmplitudeLimit"]:
             signal[1] *= config.configData["audioAmplitudeLimit"] / maxAmp
-            print(f"scaled signal to max amplitude of {max(signal[1])}")
+            print(f"scaled signal to max amplitude of {max(signal[1])}") # TODO: send warning msg to frontend
 
         signal[1] *= config.configData["audioGlobalAmplitudeMultiplier"]
 

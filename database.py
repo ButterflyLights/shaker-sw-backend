@@ -29,9 +29,6 @@ class Table:
             i += 1
 
         sql = f"INSERT INTO {self.table} ({columns}) VALUES ({placeholders})"
-        
-        print(sql)
-        print(val)
 
         try:
             self.cursor.execute(sql, val)

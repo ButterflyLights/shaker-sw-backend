@@ -2,6 +2,7 @@ import threading
 import numpy as np
 import player
 import signal_generators as sg
+import filters
 import matplotlib.pyplot as plt
 import socket
 import json
@@ -31,7 +32,7 @@ class Measurement:
         # insert entry into measurements table
         measurementsTable = database.Table(config.configData["dbMeasurementsTable"])
         self.id = measurementsTable.insert(profileId=self.command["profileId"])
-        # TODO: dont start measurement if sql fails
+        # TODO: dont start measurement if sql fails / set error
 
         print("id:", self.id)
 
@@ -49,19 +50,25 @@ class Measurement:
             os.makedirs(path)
 
         # generate input file
-        with open(self.uFilename, 'w+') as f:
-            t = np.transpose(self.u)[0]
-            u = np.transpose(self.u)[1]
+        with open(self.uFilename, 'w+') as file:
+            t = np.transpose(self.signal["uAcc"])[0]
+            u = np.transpose(self.signal["uAcc"])[1]
+            f = np.transpose(self.psdAcc)[0]
+            psd = np.transpose(self.psdAcc)[1]
 
             data = {
                 "command": self.command,
-                "samplerate": self.samplerate,
+                "samplerate": self.signal["samplerate"],
                 "t": list(t),
-                "u": list(u)
+                "u": list(u),
+                "f": list(f),
+                "psd": list(psd)
             }
 
-            json.dump(data, f)
+            json.dump(data, file)
 
+    def saveMeasurement(self, data):
+        pass
 
     def genSignal(self):
         if self.command["signalType"] == "audioFile":
@@ -76,9 +83,13 @@ class Measurement:
             sg.convertToDisp = True
             generator = sg.whiteNoise
 
-        self.u, self.samplerate = generator(**self.command["signalParams"])
+        self.signal = generator(**self.command["signalParams"])
+        self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1])
 
-        return self.u, self.samplerate
+        # plt.semilogy(np.transpose(self.psdAcc)[0], np.transpose(self.psdAcc)[1])
+        # plt.show()
+
+        return self.signal["uDisp"], self.signal["samplerate"]
 
 def getState():
     if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
@@ -101,6 +112,8 @@ def targetMeasurement():
 
     # stop measurement when playback stops
     eventFinishedPlayback.wait()
+
+    # save measurement data with measurement object
 
 def measure(u, samplerate):
     p = player.Player(eventStartedPlayback, eventFinishedPlayback)
