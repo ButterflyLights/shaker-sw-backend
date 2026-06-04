@@ -49,5 +49,7 @@ class Table:
             print("error while removing")
 
 if __name__ == "__main__":
-    profiles = Table(config.configData["dbProfilesTable"])
-    # profiles.removeId(59)
+    measurements = Table(config.configData["dbMeasurementsTable"])
+    # measurements.removeId(1)
+    # measurements.removeId(2)
+    # measurements.removeId(3)

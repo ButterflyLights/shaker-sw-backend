@@ -8,6 +8,7 @@ import json
 from enum import Enum
 import soundfile as sf
 import config
+import database
 
 eventStartedPlayback = threading.Event()
 eventFinishedPlayback = threading.Event()
@@ -16,6 +17,34 @@ class MeasurementState(str, Enum):
     IDLE = "idle"
     RUNNING = "running"
     FINISHED = "finished"
+
+class Measurement:
+    def __init__(self, command):
+        self.command = command
+        self.uFilename = ""
+        self.yFilename = ""
+
+    def setupMeasurementFiles(self):
+        # insert entry into measurements table
+        measurementsTable = database.Table(config.configData["dbMeasurementsTable"])
+        measurementsTable.insert(profileId=self.command["profileId"])
+
+        # generate files
+
+    def genSignal(self):
+        if self.command["signalType"] == "audioFile":
+            sg.convertToDisp = False
+            generator = sg.audioFile
+
+        elif self.command["signalType"] == "sweep":
+            sg.convertToDisp = True
+            generator = sg.sineSweep
+
+        elif self.command["signalType"] == "random":
+            sg.convertToDisp = True
+            generator = sg.whiteNoise
+
+        return generator(**self.command["signalParams"])
 
 def getState():
     if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
@@ -26,21 +55,6 @@ def getState():
 
     else:
         return MeasurementState.FINISHED
-
-def genSignal(data):
-    if data["signalType"] == "audioFile":
-        sg.convertToDisp = False
-        generator = sg.audioFile
-
-    elif data["signalType"] == "sweep":
-        sg.convertToDisp = True
-        generator = sg.sineSweep
-
-    elif data["signalType"] == "random":
-        sg.convertToDisp = True
-        generator = sg.whiteNoise
-
-    return generator(**data["signalParams"])
 
 def targetPlayer(p, signal, samplerate):
     p.play(signal, samplerate)
@@ -69,24 +83,29 @@ def measure(u, samplerate):
     for t in threads: t.join()
 
 def run(data):
+    m = Measurement(data)
+    m.setupMeasurementFiles()
+
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
     print(data)
 
     # build system input signal depending on data and start measurement
-    u, samplerate = genSignal(data)
+    u, samplerate = m.genSignal()
     measure(u, samplerate)
 
 def runTest():
+    with open("testMsg_random.json") as f:
+        data = json.load(f)
+    
+    m = Measurement(data)
+
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
 
-    with open("testMsg_random.json") as f:
-        data = json.load(f)
-
     # build system input signal depending on data and start measurement
-    u, samplerate = genSignal(data)
+    u, samplerate = m.genSignal()
     measure(u, samplerate)
 
 if __name__ == "__main__":
