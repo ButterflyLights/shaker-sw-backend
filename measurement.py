@@ -7,6 +7,7 @@ import socket
 import json
 from enum import Enum
 import soundfile as sf
+import os
 import config
 import database
 
@@ -17,19 +18,50 @@ class MeasurementState(str, Enum):
     IDLE = "idle"
     RUNNING = "running"
     FINISHED = "finished"
+    ERROR = "error"
 
 class Measurement:
     def __init__(self, command):
         self.command = command
-        self.uFilename = ""
-        self.yFilename = ""
+        self.uFilename = None
+        self.yFilename = None
+        self.id = None
 
     def setupMeasurementFiles(self):
         # insert entry into measurements table
         measurementsTable = database.Table(config.configData["dbMeasurementsTable"])
-        measurementsTable.insert(profileId=self.command["profileId"])
+        self.id = measurementsTable.insert(profileId=self.command["profileId"])
+        # TODO: dont start measurement if sql fails
 
-        # generate files
+        print("id:", self.id)
+
+        # generate file paths
+        path = f"../data/measurements/{self.id}"
+        self.uFilename = f"{path}/u.json"
+        self.yFilename = f"{path}/y.json"
+
+        if os.path.exists(path):
+            # TODO: set error
+            print("measurement path already exists")
+            return
+
+        else:
+            os.makedirs(path)
+
+        # generate input file
+        with open(self.uFilename, 'w+') as f:
+            t = np.transpose(self.u)[0]
+            u = np.transpose(self.u)[1]
+
+            data = {
+                "command": self.command,
+                "samplerate": self.samplerate,
+                "t": list(t),
+                "u": list(u)
+            }
+
+            json.dump(data, f)
+
 
     def genSignal(self):
         if self.command["signalType"] == "audioFile":
@@ -44,7 +76,9 @@ class Measurement:
             sg.convertToDisp = True
             generator = sg.whiteNoise
 
-        return generator(**self.command["signalParams"])
+        self.u, self.samplerate = generator(**self.command["signalParams"])
+
+        return self.u, self.samplerate
 
 def getState():
     if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
@@ -84,7 +118,6 @@ def measure(u, samplerate):
 
 def run(data):
     m = Measurement(data)
-    m.setupMeasurementFiles()
 
     eventStartedPlayback.clear()
     eventFinishedPlayback.clear()
@@ -93,6 +126,7 @@ def run(data):
 
     # build system input signal depending on data and start measurement
     u, samplerate = m.genSignal()
+    m.setupMeasurementFiles()
     measure(u, samplerate)
 
 def runTest():

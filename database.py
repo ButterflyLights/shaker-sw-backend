@@ -36,6 +36,7 @@ class Table:
         try:
             self.cursor.execute(sql, val)
             self.conn.commit()
+            return self.cursor.lastrowid
         except:
             print("error while inserting")
 
