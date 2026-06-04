@@ -158,7 +158,7 @@ def whiteNoise(lengths, grms, startFreqHz=None, endFreqHz=None):
 
 @decoratorSg
 def audioFile(filename):
-    signal, samplerate = sf.read("../data/audioFiles/" + filename, always_2d=True)
+    signal, samplerate = sf.read(config.configData["dataAudioFilesPath"] + filename, always_2d=True)
     signal = np.array([[i/samplerate, (signal[i][0] + signal[i][1]) / 2] for i in range(len(signal))])
     signal = np.transpose(signal)
     return signal[0], signal[1], samplerate

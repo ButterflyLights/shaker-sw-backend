@@ -37,7 +37,7 @@ class Measurement:
         print("id:", self.id)
 
         # generate file paths
-        path = f"../data/measurements/{self.id}"
+        path = f"{config.configData["dataMeasurementPath"]}{self.id}"
         self.uFilename = f"{path}/u.json"
         self.yFilename = f"{path}/y.json"
 
