@@ -34,12 +34,12 @@ class Measurement:
         self.id = measurementsTable.insert(profileId=self.command["profileId"])
         # TODO: dont start measurement if sql fails / set error
 
-        print("id:", self.id)
-
         # generate file paths
-        path = f"{config.configData["dataMeasurementPath"]}{self.id}"
+        path = f"{config.configData["dataWorkingDir"]}{config.configData["dataMeasurementPath"]}{self.id}"
         self.uFilename = f"{path}/u.json"
         self.yFilename = f"{path}/y.json"
+
+        measurementsTable.updateId(self.id, path=path)
 
         if os.path.exists(path):
             # TODO: set error

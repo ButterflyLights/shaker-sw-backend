@@ -37,6 +37,24 @@ class Table:
         except:
             print("error while inserting")
 
+    def updateId(self, id, **kwargs):
+        data = ""
+        i = 0
+        for key, value in kwargs.items():
+            data += f"{key} = '{value}'"
+            if i != len(kwargs.items()) - 1: data += ", "
+            i += 1
+
+        sql = f"UPDATE {self.table} SET {data} WHERE id = {id};"
+
+        print(sql)
+
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except:
+            print("error while updating")
+
     def removeId(self, id):
         sql = f"DELETE FROM {self.table} WHERE id = %s"
 
