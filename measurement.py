@@ -14,12 +14,14 @@ import database
 
 eventStartedPlayback = threading.Event()
 eventFinishedPlayback = threading.Event()
-    
+
 class MeasurementState(str, Enum):
     IDLE = "idle"
     RUNNING = "running"
     FINISHED = "finished"
     ERROR = "error"
+
+state = MeasurementState.IDLE
 
 class Measurement:
     def __init__(self, command):
@@ -29,10 +31,12 @@ class Measurement:
         self.id = None
 
     def setupMeasurementFiles(self):
+        global state
+
         # insert entry into measurements table
         measurementsTable = database.Table(config.configData["dbMeasurementsTable"])
         self.id = measurementsTable.insert(profileId=self.command["profileId"])
-        # TODO: dont start measurement if sql fails / set error
+        if self.id == False: return False
 
         # generate file paths
         path = f"{config.configData["dataWorkingDir"]}{config.configData["dataMeasurementPath"]}{self.id}"
@@ -42,35 +46,35 @@ class Measurement:
         measurementsTable.updateId(self.id, path=path)
 
         if os.path.exists(path):
-            # TODO: set error
             print("measurement path already exists")
-            return
+            state = MeasurementState.ERROR
+            return False
 
-        else:
-            os.makedirs(path)
+        os.makedirs(path)
 
         # generate input file
-        with open(self.uFilename, 'w+') as file:
-            t = np.transpose(self.signal["uAcc"])[0]
-            u = np.transpose(self.signal["uAcc"])[1]
-            f = np.transpose(self.psdAcc)[0]
-            psd = np.transpose(self.psdAcc)[1]
 
+        with open(self.uFilename, 'w+') as file:
             data = {
                 "command": self.command,
                 "samplerate": self.signal["samplerate"],
-                "t": list(t),
-                "u": list(u),
-                "f": list(f),
-                "psd": list(psd)
+                "t": list(np.transpose(self.signal["uAcc"])[0]),
+                "uAcc": list(np.transpose(self.signal["uAcc"])[1]),
+                "uDisp": list(np.transpose(self.signal["uDisp"])[1]),
+                "fAcc": list(np.transpose(self.psdAcc)[0]),
+                "psdAcc": list(np.transpose(self.psdAcc)[1]),
+                "fDisp": list(np.transpose(self.psdDisp)[0]),
+                "psdDisp": list(np.transpose(self.psdDisp)[1]) # TODO: fAcc == fDisp???
             }
 
-            json.dump(data, file)
+            json.dump(data, file, indent=4)
 
     def saveMeasurement(self, data):
         pass
 
     def genSignal(self):
+        global state
+
         if self.command["signalType"] == "audioFile":
             sg.convertToDisp = False
             generator = sg.audioFile
@@ -84,29 +88,35 @@ class Measurement:
             generator = sg.whiteNoise
 
         self.signal = generator(**self.command["signalParams"])
-        self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1])
+        if self.signal == False:
+            state = MeasurementState.ERROR
+            return False
 
-        # plt.semilogy(np.transpose(self.psdAcc)[0], np.transpose(self.psdAcc)[1])
-        # plt.show()
+        self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1])
+        self.psdDisp = filters.psd(np.transpose(self.signal["uDisp"])[1])
 
         return self.signal["uDisp"], self.signal["samplerate"]
 
 def getState():
-    if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
-        return MeasurementState.IDLE
+    return state
 
-    elif eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
-        return MeasurementState.RUNNING
+    # if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
+    #     return MeasurementState.IDLE
 
-    else:
-        return MeasurementState.FINISHED
+    # elif eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
+    #     return MeasurementState.RUNNING
+
+    # else:
+    #     return MeasurementState.FINISHED
 
 def targetPlayer(p, signal, samplerate):
     p.play(signal, samplerate)
 
 def targetMeasurement():
+    global state
     # start measurement when playback starts
     eventStartedPlayback.wait()
+    state = MeasurementState.RUNNING
 
     # collect data from DAQ
 
@@ -116,6 +126,7 @@ def targetMeasurement():
     # save measurement data with measurement object
 
 def measure(u, samplerate):
+    global state
     p = player.Player(eventStartedPlayback, eventFinishedPlayback)
 
     # init threads
@@ -129,7 +140,13 @@ def measure(u, samplerate):
     for t in threads: t.start()
     for t in threads: t.join()
 
+    state = MeasurementState.FINISHED
+
 def run(data):
+    global state
+    
+    state = MeasurementState.IDLE
+
     m = Measurement(data)
 
     eventStartedPlayback.clear()
@@ -138,11 +155,19 @@ def run(data):
     print(data)
 
     # build system input signal depending on data and start measurement
-    u, samplerate = m.genSignal()
-    m.setupMeasurementFiles()
-    measure(u, samplerate)
+    if state != MeasurementState.ERROR:
+        signal = m.genSignal()
+        if signal != False: (u, samplerate) = signal
+
+    if state != MeasurementState.ERROR: m.setupMeasurementFiles()
+
+    if state != MeasurementState.ERROR: measure(u, samplerate)
 
 def runTest():
+    global state
+
+    state = MeasurementState.IDLE
+
     with open("testMsg_random.json") as f:
         data = json.load(f)
     
@@ -152,8 +177,11 @@ def runTest():
     eventFinishedPlayback.clear()
 
     # build system input signal depending on data and start measurement
-    u, samplerate = m.genSignal()
-    measure(u, samplerate)
+    if state != MeasurementState.ERROR:
+        signal = m.genSignal()
+        if signal != False: (u, samplerate) = signal
 
+    if state != MeasurementState.ERROR: measure(u, samplerate)
+    
 if __name__ == "__main__":
     runTest()

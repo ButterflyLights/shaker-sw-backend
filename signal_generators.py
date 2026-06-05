@@ -14,7 +14,15 @@ g = 9.81
 def decoratorSg(f):
     def decorated(*args, **kwargs):
         print("generating signal...")
+
         t, y, samplerate = f(*args, **kwargs)
+        
+        # check if nan in y
+        check = np.isnan(y)
+        if len(np.where(check == True)[0]) != 0:
+            print("failed to generate signal")
+            return False
+
         print("acc rms:", calcRMS(y))
         print("acc max amplitude:", max(y))
 
@@ -69,7 +77,7 @@ def accToDisp(t, y):
     return x
 
 def _gent(lengths):
-    return np.arange(lengths*config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
+    return np.arange(lengths * config.configData["audioSamplerate"]) / config.configData["audioSamplerate"]
 
 def _sin(t, amplitude, freq, phase=0):
     return amplitude * np.sin(2 * np.pi * freq * t + phase)

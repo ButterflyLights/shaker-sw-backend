@@ -36,6 +36,7 @@ class Table:
             return self.cursor.lastrowid
         except:
             print("error while inserting")
+            return False
 
     def updateId(self, id, **kwargs):
         data = ""
@@ -45,15 +46,14 @@ class Table:
             if i != len(kwargs.items()) - 1: data += ", "
             i += 1
 
-        sql = f"UPDATE {self.table} SET {data} WHERE id = {id};"
-
-        print(sql)
+        sql = f"UPDATE {self.table} SET {data} WHERE id = {id};" # TODO: add placeholders?
 
         try:
             self.cursor.execute(sql)
             self.conn.commit()
         except:
             print("error while updating")
+            return False
 
     def removeId(self, id):
         sql = f"DELETE FROM {self.table} WHERE id = %s"
@@ -63,6 +63,7 @@ class Table:
             self.conn.commit()
         except:
             print("error while removing")
+            return False
 
 if __name__ == "__main__":
     measurements = Table(config.configData["dbMeasurementsTable"])
