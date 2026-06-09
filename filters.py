@@ -4,26 +4,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import config
 
-def fft(t, u):
-    N = len(t)
-    dw = 10 / (2*N) # ???
+NPERSEG = 1024
 
-    yf = sc.fft.fft(u)
-    yf = sc.fft.fftshift(yf)
-    xf = sc.fft.fftfreq(N, dw)
-    xf = sc.fft.fftshift(xf)
-    plt.plot(xf, 1.0/N * np.abs(yf))
+def fft(t, u, samplerate=config.configData["audioSamplerate"]):
+    xf = np.fft.fftfreq(np.array(t).shape[-1], d=1/samplerate)
+    yf = np.fft.fft(u)
+
+    plt.plot(xf, yf.real)
     plt.grid()
     plt.show()
 
     return xf, yf
 
 def invfft(F):
-    F = sc.fft.fftshift(F)
-    return sc.fft.ifft(F).real
+    return np.fft.ifft(F).real
 
-def psd(y):
-    f, pxx = signal.welch(y, config.configData["audioSamplerate"], nperseg=1024)
+def psd(y): TODO: use returned samplerate
+    f, pxx = signal.welch(y, config.configData["audioSamplerate"], nperseg=NPERSEG)
     # plt.semilogy(f, pxx)
     # plt.xlabel('frequency [Hz]')
     # plt.ylabel('PSD [V**2/Hz]')

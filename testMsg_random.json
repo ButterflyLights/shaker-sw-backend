@@ -2,9 +2,9 @@
   "command": "start-measurement",
   "signalType": "random",
   "signalParams": {
-    "lengths": 5,
+    "lengths": 10,
     "grms": 10,
-    "startFreqHz": 20,
+    "startFreqHz": 1000,
     "endFreqHz": 2000
   }
 }

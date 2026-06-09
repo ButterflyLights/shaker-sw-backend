@@ -95,19 +95,14 @@ class Measurement:
         self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1])
         self.psdDisp = filters.psd(np.transpose(self.signal["uDisp"])[1])
 
+        plt.loglog(np.transpose(self.psdAcc)[0], np.transpose(self.psdAcc)[1])
+        plt.grid()
+        plt.show()
+
         return self.signal["uDisp"], self.signal["samplerate"]
 
 def getState():
     return state
-
-    # if not eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
-    #     return MeasurementState.IDLE
-
-    # elif eventStartedPlayback.is_set() and not eventFinishedPlayback.is_set():
-    #     return MeasurementState.RUNNING
-
-    # else:
-    #     return MeasurementState.FINISHED
 
 def targetPlayer(p, signal, samplerate):
     p.play(signal, samplerate)
@@ -168,7 +163,7 @@ def runTest():
 
     state = MeasurementState.IDLE
 
-    with open("testMsg_random.json") as f:
+    with open("testMsg_sweep.json") as f:
         data = json.load(f)
     
     m = Measurement(data)
@@ -181,7 +176,7 @@ def runTest():
         signal = m.genSignal()
         if signal != False: (u, samplerate) = signal
 
-    if state != MeasurementState.ERROR: measure(u, samplerate)
+    # if state != MeasurementState.ERROR: measure(u, samplerate)
     
 if __name__ == "__main__":
     runTest()

@@ -6,7 +6,7 @@ import soundfile as sf
 import config
 import filters
 
-PLOT_SIGNAL = False
+PLOT_SIGNAL = True
 convertToDisp = True # this flag is set when a signal generator is called
 
 g = 9.81
@@ -39,10 +39,11 @@ def decoratorSg(f):
             y = accToDisp(t, y) # convert to disp
             
             if PLOT_SIGNAL:
+                filters.fft(t, y)
                 # plt.plot(t, y)
                 # plt.grid()
                 # plt.show()
-                filters.psd(y)
+                # filters.psd(y)
 
             print("disp rms:", calcRMS(y))
             print("disp max amplitude:", max(y))
@@ -73,7 +74,7 @@ def integrate(t, y):
 ### do we even need this??? ###
 def accToDisp(t, y):
     _, x = integrate(*integrate(t, y))
-    x = filters.hpf(x, config.configData["audioDispCutoffFreq"])
+    # x = filters.hpf(x, config.configData["audioDispCutoffFreq"])
     return x
 
 def _gent(lengths):
@@ -143,15 +144,13 @@ def sineSweep(amplitudeg, startFreqHz, endFreqHz, sweepRateOctMin):
 def whiteNoise(lengths, grms, startFreqHz=None, endFreqHz=None):
     t = _gent(lengths)
     N = len(t)
-    dw = 10 / (2*N) # ???
 
     if startFreqHz == None:
         startFreqHz = 0
     if endFreqHz == None:
         endFreqHz = config.configData["audioSamplerate"] / 2 # use nyquist freq as frequency limit
 
-    xf = sc.fft.fftfreq(N, dw)
-    xf = sc.fft.fftshift(xf)
+    xf = np.fft.fftfreq(np.array(t).shape[-1], d=1/config.configData["audioSamplerate"])
 
     yf = np.zeros(N)
     for i in range(N):
