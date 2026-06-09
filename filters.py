@@ -19,7 +19,7 @@ def fft(t, u, samplerate=config.configData["audioSamplerate"]):
 def invfft(F):
     return np.fft.ifft(F).real
 
-def psd(y): TODO: use returned samplerate
+def psd(y): # TODO: use returned samplerate
     f, pxx = signal.welch(y, config.configData["audioSamplerate"], nperseg=NPERSEG)
     # plt.semilogy(f, pxx)
     # plt.xlabel('frequency [Hz]')
