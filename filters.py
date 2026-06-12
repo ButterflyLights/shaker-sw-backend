@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import config
 
-NPERSEG = 1024 * 4
+NPERSEG = 1024 * 8
 
 def fft(t, u):
     xf = np.fft.fftfreq(np.array(t).shape[-1], d=t[1]-t[0])
