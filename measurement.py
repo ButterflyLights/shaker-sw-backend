@@ -92,12 +92,12 @@ class Measurement:
             state = MeasurementState.ERROR
             return False
 
-        self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1])
-        self.psdDisp = filters.psd(np.transpose(self.signal["uDisp"])[1])
+        self.psdAcc = filters.psd(np.transpose(self.signal["uAcc"])[1], self.signal["samplerate"])
+        self.psdDisp = filters.psd(np.transpose(self.signal["uDisp"])[1], self.signal["samplerate"])
 
-        plt.loglog(np.transpose(self.psdAcc)[0], np.transpose(self.psdAcc)[1])
-        plt.grid()
-        plt.show()
+        # plt.loglog(np.transpose(self.psdAcc)[0], np.transpose(self.psdAcc)[1])
+        # plt.grid()
+        # plt.show()
 
         return self.signal["uDisp"], self.signal["samplerate"]
 
@@ -163,7 +163,7 @@ def runTest():
 
     state = MeasurementState.IDLE
 
-    with open("testMsg_sweep.json") as f:
+    with open("testMsg_random.json") as f:
         data = json.load(f)
     
     m = Measurement(data)

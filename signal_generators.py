@@ -6,7 +6,7 @@ import soundfile as sf
 import config
 import filters
 
-PLOT_SIGNAL = True
+PLOT_SIGNAL = False
 convertToDisp = True # this flag is set when a signal generator is called
 
 g = 9.81
@@ -32,7 +32,7 @@ def decoratorSg(f):
         }
 
         if PLOT_SIGNAL:
-            filters.psd(y)
+            filters.psd(y, samplerate)
             # plt.plot(t, y)
 
         if convertToDisp:
@@ -43,7 +43,7 @@ def decoratorSg(f):
                 # plt.plot(t, y)
                 # plt.grid()
                 # plt.show()
-                # filters.psd(y)
+                # filters.psd(y, samplerate)
 
             print("disp rms:", calcRMS(y))
             print("disp max amplitude:", max(y))
@@ -74,7 +74,7 @@ def integrate(t, y):
 ### do we even need this??? ###
 def accToDisp(t, y):
     _, x = integrate(*integrate(t, y))
-    # x = filters.hpf(x, config.configData["audioDispCutoffFreq"])
+    x = filters.hpf(x, config.configData["audioDispCutoffFreq"])
     return x
 
 def _gent(lengths):
