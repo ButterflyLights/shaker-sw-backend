@@ -21,13 +21,6 @@ def invfft(F):
 
 def psd(y, samplerate):
     f, pxx = signal.welch(y, samplerate, nperseg=NPERSEG)
-    # plt.semilogy(f, pxx)
-    # plt.xlabel('frequency [Hz]')
-    # plt.ylabel('PSD [V**2/Hz]')
-    # plt.ylim([0.5e-12, 1])
-    # plt.grid()
-    # plt.show()
-
     return np.transpose(np.array([f, pxx]))
 
 def lpf(u, cutoff, order=config.configData["audioFilterOrder"]):
