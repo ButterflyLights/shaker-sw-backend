@@ -18,21 +18,20 @@ eventFinishedPlayback = threading.Event()
 
 class MeasurementState(str, Enum):
     IDLE = "idle"
+    GENERATING_SIGNAL = "generating signal"
+    SAVING_FILES = "saving files"
     RUNNING = "running"
     FINISHED = "finished"
     ERROR = "error"
 
 state = MeasurementState.IDLE
 
+def getState():
+    return state
+
 class Measurement:
     def __init__(self, command):
         self.command = command
-        # self.uFilename = None
-        # self.uSmallFilename = None
-        # self.uPSDFilename = None
-        # self.yFilename = None
-        # self.ySmallFilename = None
-        # self.yPSDFilename = None
         self.id = None
 
     def _downsample(self, data, factor=config.configData["dataDownsamplingFactor"]):
@@ -45,6 +44,8 @@ class Measurement:
     def setupMeasurementFiles(self):
         global state
 
+        state = MeasurementState.SAVING_FILES
+
         # insert entry into measurements table
         measurementsTable = database.Table(config.configData["dbMeasurementsTable"])
         self.id = measurementsTable.insert(profileId=self.command["profileId"])
@@ -52,12 +53,6 @@ class Measurement:
 
         # generate file path
         path = f"{config.configData["dataWorkingDir"]}{config.configData["dataMeasurementPath"]}{self.id}"
-        # self.uFilename = f"{path}/u.json"
-        # self.uSmallFilename = f"{path}/uSmall.json"
-        # self.uPSDFilename = f"{path}/uPSD.json"
-        # self.yFilename = f"{path}/y.json"
-        # self.ySmallFilename = f"{path}/ySmall.json"
-        # self.yPSDFilename = f"{path}/yPSD.json"
 
         measurementsTable.updateId(self.id, path=path)
 
@@ -89,47 +84,15 @@ class Measurement:
         files.writeFile(f"{path}/psdAcc.bin", np.transpose(self.psdAcc)[1])
         files.writeFile(f"{path}/psdDisp.bin", np.transpose(self.psdDisp)[1])
 
-
-        # with open(self.uFilename, 'w+') as file:
-        #     data = {
-        #         "command": self.command,
-        #         "samplerate": self.signal["samplerate"],
-        #         "t": list(np.transpose(self.signal["uAcc"])[0]),
-        #         "uAcc": list(np.transpose(self.signal["uAcc"])[1]),
-        #         "uDisp": list(np.transpose(self.signal["uDisp"])[1])
-        #     }
-
-        #     json.dump(data, file, indent=4)
-
-        # with open(self.uSmallFilename, 'w+') as file:
-        #     data = {
-        #         "command": self.command,
-        #         "samplerate": self.signal["samplerate"],
-        #         "downsampleFactor": config.configData["dataDownsamplingFactor"],
-        #         "t": self._downsample(list(np.transpose(self.signal["uAcc"])[0])),
-        #         "uAcc": self._downsample(list(np.transpose(self.signal["uAcc"])[1])),
-        #         "uDisp": self._downsample(list(np.transpose(self.signal["uDisp"])[1]))
-        #     }
-
-        #     json.dump(data, file, indent=4)
-
-        # with open(self.uPSDFilename, 'w+') as file:
-        #     data = {
-        #         "command": self.command,
-        #         "samplerate": self.signal["samplerate"],
-        #         "fAcc": list(np.transpose(self.psdAcc)[0]),
-        #         "psdAcc": list(np.transpose(self.psdAcc)[1]),
-        #         "fDisp": list(np.transpose(self.psdDisp)[0]),
-        #         "psdDisp": list(np.transpose(self.psdDisp)[1]) # TODO: fAcc == fDisp???
-        #     }
-
-        #     json.dump(data, file, indent=4)
-
     def saveMeasurement(self, data):
-        pass
+        global state
+
+        state = MeasurementState.SAVING_FILES
 
     def genSignal(self):
         global state
+
+        state = MeasurementState.GENERATING_SIGNAL
 
         if self.command["signalType"] == "audioFile":
             sg.convertToDisp = False
@@ -156,9 +119,6 @@ class Measurement:
         # plt.show()
 
         return self.signal["uDisp"], self.signal["samplerate"]
-
-def getState():
-    return state
 
 def targetPlayer(p, signal, samplerate):
     p.play(signal, samplerate)

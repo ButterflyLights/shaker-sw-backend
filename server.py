@@ -80,7 +80,7 @@ async def receive_data(request: Request):
 @app.get("/status")
 async def status():
     return {
-        "status": measurement.getState().name
+        "status": measurement.getState().value
     }
 
 if __name__ == "__main__":
